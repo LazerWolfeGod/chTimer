@@ -1,5 +1,6 @@
 import pygame,math,random,sys,os,time,json,datetime
 import PyUI as pyui
+import CubeMesh as cm
 pygame.init()
 screenw = 1800
 screenh = 1024
@@ -8,9 +9,9 @@ ui = pyui.UI()
 done = False
 clock = pygame.time.Clock()
 
-ui.styleset(wallpapercol=(207,215,220),font='arialrounded',col=(100,117,147),textcol=(30,30,30),roundedcorners=2,textsize=30)
+ui.styleset(wallpapercol=(207,214,222),font='arialrounded',col=(100,117,147),textcol=(30,30,30),roundedcorners=2,textsize=30,windowedmenu_roundedcorners=10,clickdownsize=2)
 #'ocraextended'
-ui.addinbuiltimage('bg',pygame.image.load('background.png'))
+ui.addinbuiltimage('bg',pygame.image.load('assets\\background.png'))
 
 def sectostr(sec):
     if sec == '-': return '-'
@@ -55,17 +56,25 @@ class Timer:
             self.release_start()
             self.spacepressed = False
         if self.timing:
-            self.timertext.settext(sectostr(time.perf_counter()-self.start_time))
+            self.timertext.timetracker = time.perf_counter()-self.start_time
+            self.timertext.settext(sectostr(self.timertext.timetracker))
         elif self.spacepressed and not self.leftwindow.enabled and not self.readytostart:
             self.readytostart = True
             self.timertext.settextcol((0,225,0))
             self.timertext.settext(sectostr(0))
+    def drawcubemesh(self):
+        if self.session == '3x3':
+            surf = pygame.Surface((self.cubemeshrect[0],self.cubemeshrect[1]))
+            surf.fill((30,30,31))
+            self.cubemesh.update(surf)
+            surf.set_colorkey((30,30,31))
+            screen.blit(surf,(ui.screenw-self.cubemeshrect[0],ui.screenh-self.cubemeshrect[1]))
 
 ## GUI   
     def makegui(self):
         self.timertext = ui.maketext(0,0,sectostr(0),120,center=True,anchor=('w/2','h/2'),pregenerated=False,font='ocraextended')
 
-        ui.maketext(0,0,'{bg}',screenh,center=True,anchor=('w/2','h/2'),layer=-10)
+        ui.maketext(0,0,'{bg}',screenh,center=True,anchor=('w/2','h/2'),layer=-10,colorkey=(207,214,222))
 
         self.leftwindow = ui.makewindow(0,0,400,'h',enabled=True,col=(27,215,220),animationtype='moveleft',bounditems=[
 
@@ -77,7 +86,17 @@ class Timer:
         self.session = ui.IDs['session select'].active
         self.refresh_times_table()
 
-        ui.makewindowedmenu(50,0,300,200,'time_edit_menu','main',isolated=True)
+        ui.makewindowedmenu(410,10,300,200,'time_edit_menu','main',isolated=True)
+
+
+
+
+        ### Cube Mesh Stuf
+        self.cubemeshrect = (300,300)
+        self.cubemesh = cm.Cube(self.cubemeshrect[0],self.cubemeshrect[1],ui)
+        ui.maketext(0,0,'',ID='scramble text',anchor=('w-150','h-310'),objanchor=('w/2','h'),maxwidth=280,textcenter=True,textsize=40,command=self.cubemesh.replayscramble)
+        ui.IDs['scramble text'].settext(self.cubemesh.scramble())
+        
 
     def refresh_times_table(self):
         data = []
@@ -88,7 +107,7 @@ class Timer:
         ui.IDs['timestable'].data = data
         ui.IDs['timestable'].refresh()
     def time_edit_menu(self,num):
-        ui.movemenu('time_edit_menu','right')
+        ui.movemenu('time_edit_menu','down')
         print(num)
         
 #### Manage timer
@@ -98,17 +117,15 @@ class Timer:
             self.timertext.settextcol((255,0,0))
             self.readytostart = False
         else:
-            info = (time.perf_counter()-self.start_time,timetodate(time.time()))
+            info = (self.timertext.timetracker,timetodate(time.time()))
             self.alldata[self.session].append(info)
             self.save_json()
             self.juststopped = True
             self.timing = False
             self.open_menus()
-
-            func = pyui.funcer(self.time_edit_menu,num=len(ui.IDs['timestable'].table))
             
+            func = pyui.funcer(self.time_edit_menu,num=len(ui.IDs['timestable'].table))
             ui.IDs['timestable'].row_insert([ui.makebutton(0,0,len(ui.IDs['timestable'].table),command=func.func),sectostr(info[0]),sectostr(self.AOX([b[0] for b in self.alldata[self.session][-5:]],5))],0)
-
             
     def shut_menus(self):
         self.leftwindow.shut()
@@ -185,10 +202,10 @@ while not done:
     for event in ui.loadtickdata():
         if event.type == pygame.QUIT:
             done = True
-    timer.gameloop()
     screen.fill(pyui.Style.wallpapercol)
-    
+    timer.gameloop()
     ui.rendergui(screen)
+    timer.drawcubemesh()
     pygame.display.flip()
     clock.tick(60)                                               
 pygame.quit() 
