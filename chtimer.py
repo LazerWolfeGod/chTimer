@@ -51,7 +51,7 @@ class Timer:
             if not self.spacepressed:
                 self.spacepressed = True
                 self.press_start()
-        elif self.spacepressed:
+        if (not ui.kprs[pygame.K_SPACE] and self.spacepressed):
             self.release_start()
             self.spacepressed = False
         if self.timing:
@@ -170,7 +170,8 @@ class Timer:
             func = pyui.funcer(self.time_edit_menu,num=len(ui.IDs['timestable'].table))
             ui.IDs['timestable'].row_insert([ui.makebutton(0,0,len(ui.IDs['timestable'].table),command=func.func),sectostr(info[0]),sectostr(self.AOX([b[0] for b in self.alldata[self.session][-5:]],5))],0)
 
-            ui.IDs['scramble text'].settext(self.cubemesh.scramble())
+            if self.cubemesh!=-1:
+                ui.IDs['scramble text'].settext(self.cubemesh.scramble())
              
     def shut_menus(self):
         self.leftwindow.shut()
@@ -270,6 +271,10 @@ while not done:
         if event.type == pygame.VIDEORESIZE:
             timer.cubemeshrect = (300*ui.scale,300*ui.scale)
             timer.cubemesh.refreshscale(300*ui.scale,300*ui.scale)
+        if event.type == pygame.KEYDOWN:
+            if timer.timing:
+                timer.press_start()
+                timer.spacepressed = True
     screen.fill(pyui.Style.wallpapercol)
     timer.gameloop()
     ui.rendergui(screen)
