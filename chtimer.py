@@ -47,13 +47,6 @@ class Timer:
 
         
     def gameloop(self):
-        if ui.kprs[pygame.K_SPACE]:
-            if not self.spacepressed:
-                self.spacepressed = True
-                self.press_start()
-        if (not ui.kprs[pygame.K_SPACE] and self.spacepressed):
-            self.release_start()
-            self.spacepressed = False
         if self.timing:
             self.timertext.timetracker = time.perf_counter()-self.start_time
             self.timertext.settext(sectostr(self.timertext.timetracker))
@@ -154,6 +147,7 @@ class Timer:
             
 #### Manage timer
     def press_start(self):
+        self.spacepressed = True
         if not self.timing:
             self.shut_menus()
             self.juststopped = False
@@ -180,6 +174,7 @@ class Timer:
         self.leftwindow.open(toggleopen=False)
         self.rightwindow.open(toggleopen=False)
     def release_start(self):
+        self.spacepressed = False
         if not self.timing:
             if self.readytostart:
                 if not self.juststopped:
@@ -263,6 +258,7 @@ class Timer:
     
 
 timer = Timer()
+keys_down = []
 
 while not done:
     for event in ui.loadtickdata():
@@ -272,9 +268,14 @@ while not done:
             timer.cubemeshrect = (300*ui.scale,300*ui.scale)
             timer.cubemesh.refreshscale(300*ui.scale,300*ui.scale)
         if event.type == pygame.KEYDOWN:
-            if timer.timing:
+            if len(keys_down) == 0:
                 timer.press_start()
-                timer.spacepressed = True
+            if not event.key in keys_down:
+                keys_down.append(event.key)
+        if event.type == pygame.KEYUP:
+            keys_down.remove(event.key)
+            if len(keys_down) == 0:
+                timer.release_start()
     screen.fill(pyui.Style.wallpapercol)
     timer.gameloop()
     ui.rendergui(screen)
